@@ -1,0 +1,9 @@
+# Descarta as mudanças locais
+git reset --hard
+
+# Puxa a atualização com o backup
+git pull origin main
+
+# Dá permissão novamente e executa!
+chmod +x install.sh
+./install.sh
