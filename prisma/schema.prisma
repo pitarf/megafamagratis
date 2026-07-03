@@ -1,0 +1,241 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AdminUser {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  passwordHash String
+  active       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  lastLoginAt  DateTime?
+  sessions     AdminSession[]
+}
+
+model AdminSession {
+  id             String    @id @default(uuid())
+  adminUserId    String
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  ipHash         String
+  userAgentHash  String
+  adminUser      AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+}
+
+model SocialNetwork {
+  id           String           @id @default(uuid())
+  slug         String           @unique // "instagram" | "tiktok" | "kwai"
+  name         String
+  active       Boolean          @default(true)
+  displayOrder Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  services     NetworkService[]
+  orders       Order[]
+}
+
+model ServiceType {
+  id        String           @id @default(uuid())
+  slug      String           @unique // "followers" | "likes" | "views"
+  name      String
+  active    Boolean          @default(true)
+  services  NetworkService[]
+  orders    Order[]
+}
+
+model NetworkService {
+  id               String            @id @default(uuid())
+  socialNetworkId  String
+  serviceTypeId    String
+  providerServiceId String
+  active           Boolean           @default(true)
+  unitCost         Float             @default(0.0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  socialNetwork    SocialNetwork     @relation(fields: [socialNetworkId], references: [id], onDelete: Cascade)
+  serviceType      ServiceType       @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  freeTrialOptions FreeTrialOption[]
+  paidPackages     PaidPackage[]
+  orders           Order[]
+
+  @@unique([socialNetworkId, serviceTypeId])
+}
+
+model FreeTrialOption {
+  id               String         @id @default(uuid())
+  networkServiceId String
+  quantity         Int
+  active           Boolean        @default(true)
+  displayOrder     Int            @default(0)
+  dailyLimit       Int?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  networkService   NetworkService @relation(fields: [networkServiceId], references: [id], onDelete: Cascade)
+  orders           Order[]
+
+  @@unique([networkServiceId, quantity])
+}
+
+model PaidPackage {
+  id                 String          @id @default(uuid())
+  networkServiceId   String
+  name               String
+  quantity           Int
+  price              Float
+  promotionalPrice   Float?
+  description        String
+  badge              String?
+  badgeVariant       String          @default("default")
+  redirectUrl        String
+  campaignParameters String?
+  active             Boolean         @default(true)
+  displayOrder       Int             @default(0)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  networkService     NetworkService  @relation(fields: [networkServiceId], references: [id], onDelete: Cascade)
+  redirectEvents     RedirectEvent[]
+}
+
+model Order {
+  id                     String              @id @default(uuid())
+  publicId               String              @unique @default(uuid())
+  socialNetworkId        String
+  serviceTypeId          String
+  networkServiceId       String
+  freeTrialOptionId      String?
+  quantity               Int
+  originalTarget         String
+  normalizedTarget       String
+  targetHash             String
+  status                 String              // "pending" | "validating" | "processing" | "completed" | "failed" | "rejected" | "duplicate" | "cancelled"
+  providerOrderId        String?
+  providerResponseSummary String?
+  recordedCost           Float               @default(0.0)
+  idempotencyKey         String              @unique
+  campaignSource         String?
+  sessionIdentifier      String
+  ipHash                 String
+  attemptsCount          Int                 @default(0)
+  errorCode              String?
+  errorMessage           String?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  completedAt            DateTime?
+  socialNetwork          SocialNetwork       @relation(fields: [socialNetworkId], references: [id])
+  serviceType            ServiceType         @relation(fields: [serviceTypeId], references: [id])
+  networkService         NetworkService      @relation(fields: [networkServiceId], references: [id])
+  freeTrialOption        FreeTrialOption?    @relation(fields: [freeTrialOptionId], references: [id])
+  attempts               OrderAttempt[]
+  statusHistory          OrderStatusHistory[]
+  redirectEvents         RedirectEvent[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([providerOrderId])
+  @@index([targetHash])
+  @@index([socialNetworkId, serviceTypeId])
+}
+
+model OrderAttempt {
+  id              String    @id @default(uuid())
+  orderId         String
+  attemptNumber   Int
+  providerOrderId String?
+  status          String
+  requestSummary  String?
+  responseSummary String?
+  recordedCost    Float     @default(0.0)
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model OrderStatusHistory {
+  id               String    @id @default(uuid())
+  orderId          String
+  previousStatus   String
+  newStatus        String
+  reason           String
+  changedByAdminId String?
+  createdAt        DateTime  @default(now())
+  order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model BlockedTarget {
+  id              String   @id @default(uuid())
+  socialNetworkId String
+  targetHash      String
+  reason          String
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  createdByAdminId String?
+
+  @@unique([socialNetworkId, targetHash])
+}
+
+model RedirectEvent {
+  id                String       @id @default(uuid())
+  orderId           String?
+  paidPackageId     String
+  eventType         String       // "view" | "click"
+  sessionIdentifier String
+  campaignSource    String?
+  createdAt         DateTime     @default(now())
+  order             Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  paidPackage       PaidPackage  @relation(fields: [paidPackageId], references: [id], onDelete: Cascade)
+
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  adminUserId    String?
+  action         String
+  entityType     String
+  entityId       String
+  previousData   String?
+  newData        String?
+  ipHash         String
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  visibility String   @default("private") // "public" | "private"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProviderConfiguration {
+  id               String   @id @default(uuid())
+  providerName     String   @default("Duke Fornecedor")
+  apiUrl           String
+  encryptedApiKey  String
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model RateLimit {
+  key          String    @id
+  attempts     Int       @default(0)
+  blockedUntil DateTime?
+  lastAttempt  DateTime  @default(now())
+}

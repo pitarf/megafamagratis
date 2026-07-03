@@ -1,0 +1,85 @@
+version: "3.8"
+
+services:
+  # 1. Banco de Dados PostgreSQL (Isolado e sem porta pública)
+  postgres:
+    image: postgres:15-alpine
+    container_name: megafama_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-megafama}
+      POSTGRES_USER: ${POSTGRES_USER:-megafama_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      # Volume persistente montado fora da pasta do repositório (VPS Hostinger)
+      - ${POSTGRES_DATA_DIR:-/opt/megafama/data/postgres}:/var/lib/postgresql/data
+      # Script de inicialização do banco de dados (Popula tabelas e configurações automaticamente)
+      - ./init_database_megafama.sql:/docker-entrypoint-initdb.d/init_database_megafama.sql:ro
+    networks:
+      - megafama_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # 2. Serviço de Migração e Sementes (executado antes do app subir)
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: megafama_migrate
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-megafama_app}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-megafama}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed"
+    networks:
+      - megafama_network
+
+  # 3. Aplicação Principal (TanStack Start / Nitro / Node Server)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: megafama_app
+    restart: unless-stopped
+    ports:
+      # Exposto localmente para proxy reverso (Nginx/Caddy). Usamos porta 3050 por padrão para evitar conflitos.
+      - "127.0.0.1:${APP_PORT:-3050}:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-megafama_app}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-megafama}?schema=public
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - megafama_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  megafama_network:
+    name: megafama_network
+    driver: bridge
