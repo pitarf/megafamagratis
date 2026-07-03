@@ -4,8 +4,8 @@
 # =========================================================================
 set -Eeuo pipefail
 
-# Caminhos absolutos
-APP_DIR="/opt/megafama/app"
+# Define a raiz do app dinamicamente (para suportar qualquer pasta de instalação)
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKUP_SCRIPT="$APP_DIR/scripts/backup-db.sh"
 
 echo "⏰ Configurando agendamento do backup diário do PostgreSQL..."

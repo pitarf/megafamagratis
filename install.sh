@@ -55,6 +55,14 @@ chmod +x update.sh install.sh
 echo "📦 Construindo as imagens e subindo os containers pela primeira vez..."
 $DOCKER_CMD -f docker-compose.prod.yml --env-file .env.production up -d --build
 
+# 5. Configurar Backups Diários
+echo "⚙️ Configurando sistema de backup diário..."
+if [ -f "scripts/setup-backup-schedule.sh" ]; then
+    bash scripts/setup-backup-schedule.sh
+else
+    echo "⚠️ Script de backup não encontrado. Pulando etapa."
+fi
+
 echo "========================================================================="
 echo "✅ Instalação concluída com sucesso!"
 echo "========================================================================="
