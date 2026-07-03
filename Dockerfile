@@ -11,7 +11,7 @@ RUN npm run build
 FROM node:20-alpine AS pruner
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --only=production
 # Copia o pacote prisma e executáveis para permitir executar migrations no container de produção
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
