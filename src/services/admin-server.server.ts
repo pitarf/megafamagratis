@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { checkLoginRateLimit, recordFailedLogin, resetLoginAttempts, getClientIpHash, getClientUaHash } from "./rate-limiter";
+import { normalizeInput } from "./normalizer";
 
 // Bypass Vite's import-protection for server-only modules used within server functions
 const TANSTACK_SERVER = "@tanstack/react-start/server";
@@ -951,4 +952,42 @@ export const retrySMMOrder = createServerFn({ method: "POST" })
     const auth = await isAuthorized();
     if (!auth.authorized) throw new Error("Não autorizado");
     return await retrySMMOrderHandler(data.orderId, auth.adminUserId);
+  });
+
+export async function unlockTargetHandler(networkId: string, input: string) {
+  const prisma = await getPrisma();
+  
+  const net = await prisma.socialNetwork.findUnique({ where: { slug: networkId } });
+  if (!net) return { success: false, error: "Rede social inválida." };
+
+  const norm = await normalizeInput(networkId, "followers", input); // Benefício irrelevante para a trava
+
+  await prisma.blockedTarget.upsert({
+    where: {
+      socialNetworkId_targetHash: {
+        socialNetworkId: net.id,
+        targetHash: norm.hash,
+      },
+    },
+    update: {
+      active: false,
+      reason: "Desbloqueado pelo Admin (Ilimitado)",
+    },
+    create: {
+      socialNetworkId: net.id,
+      targetHash: norm.hash,
+      reason: "Desbloqueado pelo Admin (Ilimitado)",
+      active: false,
+    },
+  });
+
+  return { success: true };
+}
+
+export const unlockTarget = createServerFn({ method: "POST" })
+  .validator((d: { networkId: string; input: string }) => d)
+  .handler(async ({ data }) => {
+    const auth = await isAuthorized();
+    if (!auth.authorized) throw new Error("Não autorizado");
+    return await unlockTargetHandler(data.networkId, data.input);
   });

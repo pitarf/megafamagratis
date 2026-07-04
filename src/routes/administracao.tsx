@@ -16,6 +16,7 @@ import {
   savePaidPackage,
   deletePaidPackage,
   recordRedirectLog,
+  unlockTarget,
   type SettingsData,
   type OrderRecord,
 } from "@/services/admin-server.server";
@@ -157,6 +158,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   // Estados dos Formulários
   const [qtyForm, setQtyForm] = useState({ id: "", networkId: "instagram", benefitId: "followers", quantity: "", smmServiceId: "", active: true });
   const [pkgForm, setPkgForm] = useState({ id: "", networkId: "instagram", benefitId: "followers", quantity: "", price: "", title: "", description: "", badge: "", badgeVariant: "default", extraNote: "", bullets: "", ctaLabel: "Comprar agora", url: "", sortOrder: "0", active: true });
+  const [unlockForm, setUnlockForm] = useState({ networkId: "instagram", input: "" });
+  const [unlocking, setUnlocking] = useState(false);
 
   // Carrega configurações, pedidos e listas
   useEffect(() => {
@@ -246,6 +249,25 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       getFreeQuantities().then(setQuantities);
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover.");
+    }
+  }
+
+  async function handleUnlockTarget(e: React.FormEvent) {
+    e.preventDefault();
+    if (!unlockForm.input.trim()) return;
+    setUnlocking(true);
+    try {
+      const res = await unlockTarget({ data: { networkId: unlockForm.networkId, input: unlockForm.input } });
+      if (res.success) {
+        toast.success("Alvo desbloqueado! Agora ele pode ser usado infinitas vezes.");
+        setUnlockForm({ ...unlockForm, input: "" });
+      } else {
+        toast.error(res.error || "Erro ao desbloquear o alvo.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro de rede.");
+    } finally {
+      setUnlocking(false);
     }
   }
 
@@ -1091,6 +1113,50 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     className="rounded text-primary focus:ring-focus"
                   />
                   <label htmlFor="campaignToggle" className="text-[12.5px] font-extrabold text-slate-650">Campanha de testes ativa (Funil Ativo)</label>
+                </div>
+              </div>
+            </div>
+
+            {/* TESTES ILIMITADOS (BYPASS) */}
+            <div className="rounded-2xl border border-slate-150 bg-white p-5 shadow-sm space-y-4">
+              <h2 className="text-sm font-black text-slate-800 border-b border-slate-100 pb-2">Testes Ilimitados (Bypass de Bloqueio)</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Rede Social
+                  </label>
+                  <select
+                    value={unlockForm.networkId}
+                    onChange={(e) => setUnlockForm({ ...unlockForm, networkId: e.target.value })}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12.5px] font-bold text-slate-700 focus:ring-focus"
+                  >
+                    <option value="instagram">Instagram</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="kwai">Kwai</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Nome de Usuário (@) ou Link
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={unlockForm.input}
+                      onChange={(e) => setUnlockForm({ ...unlockForm, input: e.target.value })}
+                      placeholder="Ex: @seuperfil"
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12.5px] font-bold text-slate-700 focus:ring-focus"
+                    />
+                    <button
+                      type="button"
+                      disabled={unlocking}
+                      onClick={handleUnlockTarget}
+                      className="mt-1.5 whitespace-nowrap rounded-xl bg-emerald-500 px-4 py-2.5 text-[12px] font-black text-white hover:bg-emerald-600 transition active:scale-95 shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {unlocking ? "Salvando..." : "Tornar Ilimitado"}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-450 mt-1 font-semibold">Isso permitirá usar o funil gratuito com este perfil/link quantas vezes quiser.</p>
                 </div>
               </div>
             </div>

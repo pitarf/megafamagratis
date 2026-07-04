@@ -142,22 +142,28 @@ export async function submitFreeTestOrderHandler(data: SMMOrderInput) {
         };
       }
 
-      // Cria a trava atômica no BlockedTarget
-      await tx.blockedTarget.upsert({
-        where: {
-          socialNetworkId_targetHash: {
+      // Se o target não existe, ou se já existe mas a trava foi removida,
+      // nós criamos/atualizamos apenas se ele NÃO for marcado explicitamente como ilimitado (active: false).
+      const isUnlimited = blocked && !blocked.active;
+      
+      if (!isUnlimited) {
+        // Cria a trava atômica no BlockedTarget
+        await tx.blockedTarget.upsert({
+          where: {
+            socialNetworkId_targetHash: {
+              socialNetworkId: net.id,
+              targetHash: norm.hash,
+            },
+          },
+          update: { active: true, reason: `Pedido em andamento: ${idempotencyKey}` },
+          create: {
             socialNetworkId: net.id,
             targetHash: norm.hash,
+            reason: `Pedido em andamento: ${idempotencyKey}`,
+            active: true,
           },
-        },
-        update: { active: true, reason: `Pedido em andamento: ${idempotencyKey}` },
-        create: {
-          socialNetworkId: net.id,
-          targetHash: norm.hash,
-          reason: `Pedido em andamento: ${idempotencyKey}`,
-          active: true,
-        },
-      });
+        });
+      }
 
       // Cria o registro do Pedido
       const newOrder = await tx.order.create({
