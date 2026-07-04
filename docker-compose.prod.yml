@@ -54,11 +54,10 @@ services:
     ports:
       # Exposto localmente para proxy reverso (Nginx/Caddy). Usamos porta 3050 por padrão para evitar conflitos.
       - "127.0.0.1:${APP_PORT:-3050}:3000"
+    env_file:
+      - .env.production
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-megafama_app}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-megafama}?schema=public
-      ADMIN_EMAIL: ${ADMIN_EMAIL}
-      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       NODE_ENV: production
       PORT: 3000
     depends_on:
