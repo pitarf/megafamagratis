@@ -56,24 +56,24 @@ fi
 
 # 4. Validação da Configuração Docker Compose
 echo "🔍 Validando arquivos do Docker Compose..."
-if ! docker compose -f docker-compose.prod.yml config > /dev/null; then
+if ! docker compose --env-file .env.production -f docker-compose.prod.yml config > /dev/null; then
   echo "❌ ERRO: Arquivo docker-compose.prod.yml contém erros de sintaxe ou configuração."
   exit 1
 fi
 
 # 5. Inicia/Garante PostgreSQL em execução para Backup
 echo "🐘 Garantindo que o PostgreSQL esteja online..."
-docker compose -f docker-compose.prod.yml up -d postgres
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d postgres
 
 echo "⏳ Aguardando healthcheck do banco..."
 DB_ATTEMPTS=0
 DB_MAX_ATTEMPTS=15
-until docker compose -f docker-compose.prod.yml ps postgres | grep -q "healthy" || [ $DB_ATTEMPTS -eq $DB_MAX_ATTEMPTS ]; do
+until docker compose --env-file .env.production -f docker-compose.prod.yml ps postgres | grep -q "healthy" || [ $DB_ATTEMPTS -eq $DB_MAX_ATTEMPTS ]; do
   sleep 2
   DB_ATTEMPTS=$((DB_ATTEMPTS + 1))
 done
 
-if ! docker compose -f docker-compose.prod.yml ps postgres | grep -q "healthy"; then
+if ! docker compose --env-file .env.production -f docker-compose.prod.yml ps postgres | grep -q "healthy"; then
   echo "❌ ERRO: O PostgreSQL não está saudável."
   exit 1
 fi
@@ -88,21 +88,21 @@ fi
 
 # 7. Build da Imagem Docker da Aplicação
 echo "🐳 Construindo imagem Docker da aplicação..."
-if ! docker compose -f docker-compose.prod.yml build app; then
+if ! docker compose --env-file .env.production -f docker-compose.prod.yml build app; then
   echo "❌ ERRO: Falha no build da imagem da aplicação."
   exit 1
 fi
 
 # 8. Executa as Migrations de Produção
 echo "⚡ Executando migrations do banco..."
-if ! docker compose -f docker-compose.prod.yml run --rm migrate; then
+if ! docker compose --env-file .env.production -f docker-compose.prod.yml run --rm migrate; then
   echo "❌ ERRO: Falha na execução das migrations."
   exit 1
 fi
 
 # 9. Sobe a Aplicação Nova
 echo "🚀 Reiniciando os containers da aplicação..."
-if ! docker compose -f docker-compose.prod.yml up -d --remove-orphans; then
+if ! docker compose --env-file .env.production -f docker-compose.prod.yml up -d --remove-orphans; then
   echo "❌ ERRO: Falha ao subir os containers."
   exit 1
 fi
@@ -111,15 +111,15 @@ fi
 echo "⏳ Aguardando healthcheck da aplicação..."
 APP_ATTEMPTS=0
 APP_MAX_ATTEMPTS=20
-until docker compose -f docker-compose.prod.yml ps app | grep -q "healthy" || [ $APP_ATTEMPTS -eq $APP_MAX_ATTEMPTS ]; do
+until docker compose --env-file .env.production -f docker-compose.prod.yml ps app | grep -q "healthy" || [ $APP_ATTEMPTS -eq $APP_MAX_ATTEMPTS ]; do
   sleep 2
   APP_ATTEMPTS=$((APP_ATTEMPTS + 1))
 done
 
-if ! docker compose -f docker-compose.prod.yml ps app | grep -q "healthy"; then
+if ! docker compose --env-file .env.production -f docker-compose.prod.yml ps app | grep -q "healthy"; then
   echo "❌ ERRO: A aplicação atualizada não passou no teste de integridade (healthcheck)."
   echo "=== LOGS DA APLICAÇÃO ==="
-  docker compose -f docker-compose.prod.yml logs app
+  docker compose --env-file .env.production -f docker-compose.prod.yml logs app
   exit 1
 fi
 
@@ -139,6 +139,6 @@ echo ""
 echo "========================================================================="
 echo "🎉 Atualização Concluída!"
 echo "========================================================================="
-docker compose -f docker-compose.prod.yml ps
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
 echo "========================================================================="
 exit 0
