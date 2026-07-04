@@ -371,13 +371,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       <header className="sticky top-0 z-20 border-b border-slate-200/60 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl h-14 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="grid h-7.5 w-7.5 place-items-center rounded bg-gradient-to-tr from-primary to-indigo-600 text-[12px] font-black text-white shadow-sm">
-              M
-            </div>
+            <img src="/logo.png" alt="Mega Fama Admin" className="h-8 w-auto object-contain" />
             <div>
-              <span className="text-[13px] font-black tracking-tight text-slate-800">
-                Mega Fama Admin
-              </span>
               <span className="ml-2 rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-primary">
                 Funil Ativo
               </span>

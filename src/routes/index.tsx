@@ -287,12 +287,7 @@ function TopBar() {
     <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex h-11 w-full max-w-md items-center justify-between px-4 sm:max-w-xl">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="grid h-6 w-6 shrink-0 place-items-center rounded bg-gradient-to-tr from-primary to-indigo-600 text-[11px] font-bold text-white shadow-sm">
-            M
-          </div>
-          <span className="text-[12px] font-bold tracking-tight text-slate-800">
-            Mega Fama
-          </span>
+          <img src="/logo.png" alt="Mega Fama" className="h-8 w-auto object-contain" />
         </div>
         <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-0.5 text-[9.5px] font-bold text-emerald-600">
           <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />

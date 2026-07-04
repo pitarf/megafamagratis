@@ -86,7 +86,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     const settings = loaderData;
     const title = settings?.siteTitle || "Resgate seu teste grátis — Mega Fama";
     const desc = settings?.siteDescription || "Escolha 1 teste grátis: seguidores, curtidas ou views brasileiras. Sem senha, sem login.";
-    const favicon = settings?.faviconUrl || "/favicon.ico";
+    const favicon = settings?.faviconUrl || "/favicon.png";
     return {
       meta: [
         { charSet: "utf-8" },
