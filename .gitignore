@@ -41,6 +41,7 @@ data/
 *.dump
 *.sql
 !init_database_megafama.sql
+!prisma/migrations/**/*.sql
 src/data/orders.json
 src/data/settings.json
 src/data/*.backup
