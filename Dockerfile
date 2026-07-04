@@ -1,5 +1,6 @@
 # Stage 1: Build da Aplicação e Geração do Client do Prisma
 FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -18,6 +19,7 @@ COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
 
 # Stage 3: Runner Final (Imagem de Produção Leve e Segura)
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production
 
