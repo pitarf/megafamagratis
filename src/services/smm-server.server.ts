@@ -138,6 +138,7 @@ export async function submitFreeTestOrderHandler(data: SMMOrderInput) {
       if (blocked && blocked.active) {
         return {
           allowed: false,
+          errorCode: "DUPLICATE_TARGET",
           error: "Este perfil ou conteúdo já utilizou o teste gratuito. O benefício está disponível apenas uma vez por conta.",
         };
       }
@@ -189,7 +190,7 @@ export async function submitFreeTestOrderHandler(data: SMMOrderInput) {
     });
 
     if (!transactionResult.allowed) {
-      return { success: false, error: transactionResult.error };
+      return { success: false, error: transactionResult.error, errorCode: transactionResult.errorCode };
     }
 
     const localOrderId = transactionResult.orderId!;

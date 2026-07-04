@@ -64,10 +64,7 @@ function FunnelPage() {
     const src = params.get("utm_source") || params.get("ref") || "";
     setCampaignSource(src);
 
-    // 3. Verifica bloqueio local
-    if (hasRedeemed()) {
-      setStep("blocked");
-    }
+    // 3. (Removido: Bloqueio imediato por Local Storage)
 
     // 4. Carrega configurações dinâmicas de SEO, quantidades e ofertas
     getAdminSettings().then((res) => {
@@ -148,7 +145,6 @@ function FunnelPage() {
   }, [activeQuantities, selection]);
 
   function pickNetwork(network: Network) {
-    if (hasRedeemed()) return setStep("blocked");
     setSelection({ network });
     setStep("benefit");
   }
@@ -197,6 +193,12 @@ function FunnelPage() {
         });
 
         if (!res.success) {
+          // Se o servidor avisar que o alvo já foi usado, vai para a tela de bloqueio
+          if ((res as any).errorCode === "DUPLICATE_TARGET") {
+            setStep("blocked");
+            return;
+          }
+          
           setError(res.error || "Ocorreu um erro ao processar o seu teste grátis.");
           setStep("input");
           // Reseta a chave de idempotência para permitir nova tentativa
