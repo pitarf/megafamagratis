@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { checkLoginRateLimit, recordFailedLogin, resetLoginAttempts, getClientIpHash, getClientUaHash } from "./rate-limiter";
 
 // Bypass Vite's import-protection for server-only modules used within server functions
 const TANSTACK_SERVER = "@tanstack/react-start/server";
@@ -432,7 +433,6 @@ export async function loginAdminHandler(password?: string, ipHash?: string, user
 export const loginAdmin = createServerFn({ method: "POST" })
   .validator((d: { password?: string }) => d)
   .handler(async ({ data }) => {
-    const { checkLoginRateLimit, recordFailedLogin, resetLoginAttempts, getClientIpHash, getClientUaHash } = await import("./rate-limiter");
     const { setCookie } = await import(/* @vite-ignore */ TANSTACK_SERVER);
     const ipHash = await getClientIpHash();
     const uaHash = await getClientUaHash();
