@@ -183,6 +183,7 @@ export async function submitFreeTestOrderHandler(data: SMMOrderInput) {
           sessionIdentifier: sessionId,
           ipHash,
           attemptsCount: 1,
+          recordedCost: (Number(quantity) / 1000) * (netService.unitCost || 0),
         },
       });
 

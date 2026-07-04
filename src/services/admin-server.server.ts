@@ -511,6 +511,7 @@ export async function getFreeQuantitiesHandler() {
     benefitId: o.networkService.serviceType.slug,
     quantity: o.quantity,
     smmServiceId: o.networkService.providerServiceId,
+    unitCost: o.networkService.unitCost,
     active: o.active,
   }));
 }
@@ -520,9 +521,9 @@ export const getFreeQuantities = createServerFn({ method: "GET" })
     return await getFreeQuantitiesHandler();
   });
 
-export async function saveFreeQuantityHandler(data: { id?: string; networkId: string; benefitId: string; quantity: number; smmServiceId: string; active: boolean }) {
+export async function saveFreeQuantityHandler(data: { id?: string; networkId: string; benefitId: string; quantity: number; smmServiceId: string; unitCost: number; active: boolean }) {
   const prisma = await getPrisma();
-  const { id, networkId, benefitId, quantity, smmServiceId, active } = data;
+  const { id, networkId, benefitId, quantity, smmServiceId, unitCost, active } = data;
   if (quantity <= 0) throw new Error("Quantidade inválida.");
 
   const net = await prisma.socialNetwork.findUnique({ where: { slug: networkId } });
@@ -532,11 +533,12 @@ export async function saveFreeQuantityHandler(data: { id?: string; networkId: st
 
   const netService = await prisma.networkService.upsert({
     where: { socialNetworkId_serviceTypeId: { socialNetworkId: net.id, serviceTypeId: st.id } },
-    update: { providerServiceId: smmServiceId },
+    update: { providerServiceId: smmServiceId, unitCost },
     create: {
       socialNetworkId: net.id,
       serviceTypeId: st.id,
       providerServiceId: smmServiceId,
+      unitCost,
     },
   });
 
@@ -563,7 +565,7 @@ export async function saveFreeQuantityHandler(data: { id?: string; networkId: st
 }
 
 export const saveFreeQuantity = createServerFn({ method: "POST" })
-  .validator((q: { id?: string; networkId: string; benefitId: string; quantity: number; smmServiceId: string; active: boolean }) => q)
+  .validator((q: { id?: string; networkId: string; benefitId: string; quantity: number; smmServiceId: string; unitCost: number; active: boolean }) => q)
   .handler(async ({ data }) => {
     const auth = await isAuthorized();
     if (!auth.authorized) throw new Error("Não autorizado");

@@ -134,6 +134,16 @@ function FunnelPage() {
     );
   }, [selection, quantities]);
 
+  // Filtra as redes e benefícios ativos para esconder o que foi desativado no painel
+  const filteredNetworks = useMemo(() => {
+    return NETWORKS.map(network => {
+      const activeBenefits = network.benefits.filter(benefit => 
+        quantities.some(q => q.networkId === network.id && q.benefitId === benefit.id && q.active)
+      );
+      return { ...network, benefits: activeBenefits };
+    }).filter(network => network.benefits.length > 0);
+  }, [quantities]);
+
   // Define quantidade selecionável inicial
   useEffect(() => {
     if (activeQuantities.length > 0) {
@@ -242,7 +252,7 @@ function FunnelPage() {
         <ProgressBar current={stepIndex[step]} total={totalSteps} />
       )}
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-start py-5 px-4 sm:max-w-xl sm:px-6 sm:py-8 sm:justify-center">
-        {step === "network" && <NetworkStep onPick={pickNetwork} />}
+        {step === "network" && <NetworkStep onPick={pickNetwork} networks={filteredNetworks} />}
         {step === "benefit" && selection && (
           <BenefitStep
             selection={selection}
@@ -334,7 +344,7 @@ function Footer() {
 
 /* ============ STEP 1: NETWORK ============ */
 
-function NetworkStep({ onPick }: { onPick: (n: Network) => void }) {
+function NetworkStep({ onPick, networks }: { onPick: (n: Network) => void; networks: Network[] }) {
   return (
     <section className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col justify-center">
       <div className="text-center sm:text-left">
@@ -362,7 +372,7 @@ function NetworkStep({ onPick }: { onPick: (n: Network) => void }) {
       </div>
 
       <div className="space-y-3">
-        {NETWORKS.map((n) => (
+        {networks.map((n) => (
           <NetworkCard key={n.id} network={n} onPick={() => onPick(n)} />
         ))}
       </div>

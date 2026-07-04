@@ -158,7 +158,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [saving, setSaving] = useState(false);
 
   // Estados dos Formulários
-  const [qtyForm, setQtyForm] = useState({ id: "", networkId: "instagram", benefitId: "followers", quantity: "", smmServiceId: "", active: true });
+  const [qtyForm, setQtyForm] = useState({ id: "", networkId: "instagram", benefitId: "followers", quantity: "", smmServiceId: "", unitCost: "0", active: true });
   const [pkgForm, setPkgForm] = useState({ id: "", networkId: "instagram", benefitId: "followers", quantity: "", price: "", title: "", description: "", badge: "", badgeVariant: "default", extraNote: "", bullets: "", ctaLabel: "Comprar agora", url: "", sortOrder: "0", active: true });
   const [unlockForm, setUnlockForm] = useState({ networkId: "instagram", input: "" });
   const [unlocking, setUnlocking] = useState(false);
@@ -235,11 +235,12 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           benefitId: qtyForm.benefitId,
           quantity: qty,
           smmServiceId: qtyForm.smmServiceId,
+          unitCost: Number(qtyForm.unitCost),
           active: qtyForm.active,
         },
       });
       toast.success("Quantidade salva com sucesso!");
-      setQtyForm({ id: "", networkId: "instagram", benefitId: "followers", quantity: "", smmServiceId: "", active: true });
+      setQtyForm({ id: "", networkId: "instagram", benefitId: "followers", quantity: "", smmServiceId: "", unitCost: "0", active: true });
       getFreeQuantities().then(setQuantities);
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar quantidade.");
@@ -401,9 +402,19 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   // Estatísticas
   const stats = useMemo(() => {
     const total = orders.length;
-    const completed = orders.filter((o) => o.status === "completed").length;
+    const completedOrders = orders.filter((o) => o.status === "completed");
+    const completed = completedOrders.length;
     const errors = orders.filter((o) => o.status === "failed").length;
-    return { total, completed, errors };
+
+    let totalCost = 0;
+    const costByService: Record<string, number> = {};
+    completedOrders.forEach((o) => {
+      const key = `${o.networkId}_${o.benefitId}`;
+      costByService[key] = (costByService[key] || 0) + (o.cost || 0);
+      totalCost += (o.cost || 0);
+    });
+
+    return { total, completed, errors, totalCost, costByService };
   }, [orders]);
 
   return (
@@ -545,6 +556,28 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <Coins className="h-3.5 w-3.5" />
                   Conexão Ativa
                 </div>
+              </div>
+            </div>
+
+            {/* CUSTOS DE TESTES GRÁTIS */}
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+              <h2 className="text-[12px] font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2 mb-3">Custos de Testes Grátis</h2>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+                  <div className="text-[10px] font-bold text-slate-400">Total Geral Gasto</div>
+                  <div className="text-lg font-black text-slate-700 mt-1">R$ {stats.totalCost.toFixed(2)}</div>
+                </div>
+                {Object.entries(stats.costByService).filter(([_, cost]) => cost > 0).map(([key, cost]) => {
+                  const [net, ben] = key.split("_");
+                  const netName = net.charAt(0).toUpperCase() + net.slice(1);
+                  const benName = ben === "followers" ? "Seguidores" : ben === "likes" ? "Curtidas" : "Views";
+                  return (
+                    <div key={key} className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+                      <div className="text-[10px] font-bold text-slate-400">{netName} {benName}</div>
+                      <div className="text-lg font-black text-slate-700 mt-1">R$ {cost.toFixed(2)}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -720,6 +753,19 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   />
                 </div>
 
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Custo SMM por 1000 (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={qtyForm.unitCost}
+                    onChange={(e) => setQtyForm({ ...qtyForm, unitCost: e.target.value })}
+                    placeholder="Ex: 1.50"
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12.5px] font-bold focus:ring-focus"
+                  />
+                </div>
+
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -741,7 +787,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   {qtyForm.id && (
                     <button
                       type="button"
-                      onClick={() => setQtyForm({ id: "", networkId: "instagram", benefitId: "followers", quantity: "", smmServiceId: "", active: true })}
+                      onClick={() => setQtyForm({ id: "", networkId: "instagram", benefitId: "followers", quantity: "", smmServiceId: "", unitCost: "0", active: true })}
                       className="rounded-xl border border-slate-200 px-3 text-[12px] font-bold text-slate-550 hover:bg-slate-50"
                     >
                       Cancelar
@@ -764,6 +810,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       <th className="px-3 py-2">Serviço</th>
                       <th className="px-3 py-2">Quantidade</th>
                       <th className="px-3 py-2">Service ID</th>
+                      <th className="px-3 py-2">Custo (1000)</th>
                       <th className="px-3 py-2">Status</th>
                       <th className="px-3 py-2 text-right">Ações</th>
                     </tr>
@@ -775,6 +822,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         <td className="px-3 py-3.5 capitalize">{q.benefitId === "followers" ? "Seguidores" : q.benefitId === "likes" ? "Curtidas" : "Views"}</td>
                         <td className="px-3 py-3.5 font-bold text-primary">{q.quantity}</td>
                         <td className="px-3 py-3.5 font-mono text-[11px]">{q.smmServiceId}</td>
+                        <td className="px-3 py-3.5 font-mono text-[11px] text-slate-500">R$ {Number(q.unitCost || 0).toFixed(2)}</td>
                         <td className="px-3 py-3.5">
                           {q.active ? (
                             <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-600 font-bold border border-emerald-100">Ativa</span>
@@ -784,7 +832,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         </td>
                         <td className="px-3 py-3.5 text-right flex gap-1.5 justify-end">
                           <button
-                            onClick={() => setQtyForm({ id: q.id, networkId: q.networkId, benefitId: q.benefitId, quantity: q.quantity.toString(), smmServiceId: q.smmServiceId, active: q.active })}
+                            onClick={() => setQtyForm({ id: q.id, networkId: q.networkId, benefitId: q.benefitId, quantity: q.quantity.toString(), smmServiceId: q.smmServiceId, unitCost: String(q.unitCost || 0), active: q.active })}
                             className="p-1.5 text-slate-400 hover:text-primary transition"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
