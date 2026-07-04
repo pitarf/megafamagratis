@@ -5,7 +5,7 @@
 set -Eeuo pipefail
 
 # 1. Localiza a raiz do projeto e adquire lock de execução única
-PROJECT_ROOT="/opt/megafama/app"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$PROJECT_ROOT"
 
 LOCK_FILE="/tmp/megafama_update.lock"
@@ -131,7 +131,7 @@ docker image prune -f
 
 # 12. Relatório de status e log de deploy
 echo "📝 Gravando histórico de deploy..."
-DEPLOY_LOG="/opt/megafama/logs/deploy.log"
+DEPLOY_LOG="$PROJECT_ROOT/logs/deploy.log"
 mkdir -p "$(dirname "$DEPLOY_LOG")"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Deploy realizado com sucesso do commit $PREVIOUS_COMMIT para $NEW_COMMIT" >> "$DEPLOY_LOG"
 

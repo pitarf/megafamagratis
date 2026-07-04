@@ -96,6 +96,7 @@ model PaidPackage {
   badgeVariant       String          @default("default")
   redirectUrl        String
   campaignParameters String?
+  bullets            String?
   active             Boolean         @default(true)
   displayOrder       Int             @default(0)
   createdAt          DateTime        @default(now())

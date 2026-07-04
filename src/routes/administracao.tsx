@@ -17,6 +17,8 @@ import {
   deletePaidPackage,
   recordRedirectLog,
   unlockTarget,
+  getUnlimitedTargets,
+  removeUnlimitedTarget,
   type SettingsData,
   type OrderRecord,
 } from "@/services/admin-server.server";
@@ -161,6 +163,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [unlockForm, setUnlockForm] = useState({ networkId: "instagram", input: "" });
   const [unlocking, setUnlocking] = useState(false);
 
+  const [unlimitedTargets, setUnlimitedTargets] = useState<any[]>([]);
+
   // Carrega configurações, pedidos e listas
   useEffect(() => {
     loadData();
@@ -172,6 +176,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     getAdminOrders().then(setOrders);
     getFreeQuantities().then(setQuantities);
     getPaidPackages().then(setPaidPackages);
+    getUnlimitedTargets().then(setUnlimitedTargets);
   }
 
   function updateBalance() {
@@ -261,6 +266,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       if (res.success) {
         toast.success("Alvo desbloqueado! Agora ele pode ser usado infinitas vezes.");
         setUnlockForm({ ...unlockForm, input: "" });
+        getUnlimitedTargets().then(setUnlimitedTargets);
       } else {
         toast.error(res.error || "Erro ao desbloquear o alvo.");
       }
@@ -268,6 +274,21 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       toast.error(err.message || "Erro de rede.");
     } finally {
       setUnlocking(false);
+    }
+  }
+
+  async function handleRemoveUnlimitedTarget(id: string) {
+    if (!confirm("Tem certeza que deseja revogar o acesso ilimitado para esta conta?")) return;
+    try {
+      const res = await removeUnlimitedTarget({ data: { id } });
+      if (res.success) {
+        toast.success("Acesso ilimitado revogado. A conta voltou à regra normal.");
+        getUnlimitedTargets().then(setUnlimitedTargets);
+      } else {
+        toast.error(res.error || "Erro ao remover.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro de rede.");
     }
   }
 
@@ -1159,6 +1180,47 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <p className="text-[10px] text-slate-450 mt-1 font-semibold">Isso permitirá usar o funil gratuito com este perfil/link quantas vezes quiser.</p>
                 </div>
               </div>
+              
+              {/* Tabela de Ilimitados Atuais */}
+              {unlimitedTargets.length > 0 && (
+                <div className="mt-6 border-t border-slate-100 pt-5">
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+                    Perfis Atualmente Ilimitados
+                  </h3>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <table className="w-full text-left text-[12.5px]">
+                      <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3">Rede Social</th>
+                          <th className="px-4 py-3">Destinatário</th>
+                          <th className="px-4 py-3">Data</th>
+                          <th className="px-4 py-3 text-right">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white font-medium">
+                        {unlimitedTargets.map((t) => (
+                          <tr key={t.id} className="transition hover:bg-slate-50">
+                            <td className="px-4 py-3 text-slate-650 capitalize">{t.networkId}</td>
+                            <td className="px-4 py-3 font-bold text-slate-800">{t.originalTarget}</td>
+                            <td className="px-4 py-3 text-slate-500">
+                              {new Date(t.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveUnlimitedTarget(t.id)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-bold text-rose-600 transition hover:bg-rose-100 hover:text-rose-700"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" /> Remover
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* BOTÃO SALVAR */}

@@ -971,17 +971,69 @@ export async function unlockTargetHandler(networkId: string, input: string) {
     },
     update: {
       active: false,
-      reason: "Desbloqueado pelo Admin (Ilimitado)",
+      reason: `Desbloqueado pelo Admin (Ilimitado): ${input}`,
     },
     create: {
       socialNetworkId: net.id,
       targetHash: norm.hash,
-      reason: "Desbloqueado pelo Admin (Ilimitado)",
+      reason: `Desbloqueado pelo Admin (Ilimitado): ${input}`,
       active: false,
     },
   });
 
   return { success: true };
+}
+
+export async function getUnlimitedTargetsHandler() {
+  const prisma = await getPrisma();
+  
+  const blocked = await prisma.blockedTarget.findMany({
+    where: { active: false },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const networks = await prisma.socialNetwork.findMany();
+  const netMap = new Map(networks.map(n => [n.id, n.slug]));
+
+  const results = [];
+  
+  for (const b of blocked) {
+    let originalTarget = "Desconhecido";
+    
+    // Tenta extrair do reason
+    if (b.reason.includes("Ilimitado): ")) {
+      originalTarget = b.reason.split("Ilimitado): ")[1];
+    } else {
+      // Fallback para buscar o alvo original no pedido mais recente com esse hash
+      const order = await prisma.order.findFirst({
+        where: { targetHash: b.targetHash, socialNetworkId: b.socialNetworkId },
+        orderBy: { createdAt: "desc" },
+      });
+      if (order) {
+        originalTarget = order.originalTarget;
+      }
+    }
+
+    results.push({
+      id: b.id,
+      networkId: netMap.get(b.socialNetworkId) || "unknown",
+      targetHash: b.targetHash,
+      originalTarget,
+      createdAt: b.createdAt.toISOString(),
+    });
+  }
+
+  return results;
+}
+
+export async function removeUnlimitedTargetHandler(id: string) {
+  const prisma = await getPrisma();
+  try {
+    await prisma.blockedTarget.delete({ where: { id } });
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: "Erro ao remover." };
+  }
 }
 
 export const unlockTarget = createServerFn({ method: "POST" })
@@ -990,4 +1042,19 @@ export const unlockTarget = createServerFn({ method: "POST" })
     const auth = await isAuthorized();
     if (!auth.authorized) throw new Error("Não autorizado");
     return await unlockTargetHandler(data.networkId, data.input);
+  });
+
+export const getUnlimitedTargets = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const auth = await isAuthorized();
+    if (!auth.authorized) throw new Error("Não autorizado");
+    return await getUnlimitedTargetsHandler();
+  });
+
+export const removeUnlimitedTarget = createServerFn({ method: "POST" })
+  .validator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    const auth = await isAuthorized();
+    if (!auth.authorized) throw new Error("Não autorizado");
+    return await removeUnlimitedTargetHandler(data.id);
   });

@@ -5,13 +5,13 @@
 set -Eeuo pipefail
 
 # 1. Configurações de Diretórios
-APP_DIR="/opt/megafama/app"
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
 ENV_FILE="$APP_DIR/.env.production"
 
 # Fallbacks padrão
 POSTGRES_USER="megafama_app"
 POSTGRES_DB="megafama"
-POSTGRES_BACKUP_DIR="/opt/megafama/backups/postgres"
+POSTGRES_BACKUP_DIR="$APP_DIR/backups/postgres"
 
 # 2. Carrega variáveis de ambiente de produção
 if [ -f "$ENV_FILE" ]; then
