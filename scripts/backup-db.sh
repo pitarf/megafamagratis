@@ -34,13 +34,13 @@ BACKUP_FILE="$POSTGRES_BACKUP_DIR/megafama_${TIMESTAMP}.dump"
 # 3. Executa o pg_dump via Container Docker (Piped para o Host)
 cd "$APP_DIR"
 
-if ! docker compose ps | grep -q "megafama_postgres"; then
+if ! docker compose -f docker-compose.prod.yml ps | grep -q "megafama_postgres"; then
   echo "❌ ERRO: O container de banco de dados 'megafama_postgres' não está em execução."
   exit 1
 fi
 
 echo "📥 Extraindo dump do banco de dados..."
-if ! docker compose exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "$BACKUP_FILE"; then
+if ! docker compose -f docker-compose.prod.yml exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "$BACKUP_FILE"; then
   echo "❌ ERRO: Falha crítica ao extrair o dump do PostgreSQL."
   rm -f "$BACKUP_FILE"
   exit 1
@@ -54,7 +54,7 @@ if [ ! -s "$BACKUP_FILE" ]; then
 fi
 
 echo "🔍 Validando integridade do backup..."
-if ! docker compose exec -T postgres pg_restore --list < "$BACKUP_FILE" > /dev/null; then
+if ! docker compose -f docker-compose.prod.yml exec -T postgres pg_restore --list < "$BACKUP_FILE" > /dev/null; then
   echo "❌ ERRO: O arquivo de backup gerado está corrompido ou é inválido."
   rm -f "$BACKUP_FILE"
   exit 1
