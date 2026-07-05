@@ -289,12 +289,40 @@ export async function submitFreeTestOrderHandler(data: SMMOrderInput) {
       if (resData.order) {
         const providerOrderId = resData.order.toString();
 
+        // 12. Captura o custo real (Duke retorna na resposta ou consultamos via status)
+        let actualCost: number | undefined = undefined;
+        if (resData.charge) {
+          actualCost = parseFloat(resData.charge);
+        } else if (resData.price) {
+          actualCost = parseFloat(resData.price);
+        } else {
+          // Busca no status para pegar o charge (Padrão Perfect Panel)
+          try {
+            const statusData = new URLSearchParams();
+            statusData.append("key", provider.encryptedApiKey);
+            statusData.append("action", "status");
+            statusData.append("order", providerOrderId);
+            const statusRes = await fetch(provider.apiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: statusData.toString(),
+            });
+            const statusJson = await statusRes.json();
+            if (statusJson.charge) {
+              actualCost = parseFloat(statusJson.charge);
+            }
+          } catch (e) {
+            console.error(`[SMM] Falha ao buscar charge do pedido ${providerOrderId}:`, e);
+          }
+        }
+
         await prisma.order.update({
           where: { id: localOrderId },
           data: {
             status: "completed",
             providerOrderId,
             completedAt: new Date(),
+            ...(actualCost !== undefined && !isNaN(actualCost) ? { recordedCost: actualCost } : {}),
           },
         });
 
