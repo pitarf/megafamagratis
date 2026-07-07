@@ -95,7 +95,7 @@ fi
 
 # 8. Executa as Migrations de Produção
 echo "⚡ Executando migrations do banco..."
-if ! docker compose --env-file .env.production -f docker-compose.prod.yml run --rm app npx prisma db push --accept-data-loss; then
+if ! docker compose --env-file .env.production -f docker-compose.prod.yml run --rm app npx prisma migrate deploy; then
   echo "❌ ERRO: Falha na execução das migrations."
   exit 1
 fi
