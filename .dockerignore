@@ -15,7 +15,7 @@ data
 prisma/dev.db
 prisma/dev.db-journal
 *.dump
-*.sql
+!prisma/migrations/**/*.sql
 src/data/orders.json
 src/data/settings.json
 src/data/*.backup

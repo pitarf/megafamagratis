@@ -7,3 +7,7 @@ git pull origin main
 # Dá permissão novamente e executa!
 chmod +x install.sh
 ./install.sh
+
+
+git reset --hard
+bash update.sh
