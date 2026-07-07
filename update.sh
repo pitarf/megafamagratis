@@ -88,7 +88,7 @@ fi
 
 # 7. Build da Imagem Docker da Aplicação
 echo "🐳 Construindo imagem Docker da aplicação..."
-if ! docker compose --env-file .env.production -f docker-compose.prod.yml build app; then
+if ! docker compose --env-file .env.production -f docker-compose.prod.yml build; then
   echo "❌ ERRO: Falha no build da imagem da aplicação."
   exit 1
 fi
