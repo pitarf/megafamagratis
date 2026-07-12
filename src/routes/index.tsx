@@ -889,7 +889,13 @@ function OfferCard({
       }`}
     >
       {(highlighted || pkg.badge) && (
-        <div className="absolute -top-2.5 left-4 rounded-full bg-gradient-to-r from-primary to-indigo-600 px-2.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider text-white shadow-sm">
+        <div className={`absolute -top-2.5 left-4 rounded-full px-2.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider shadow-sm ${
+          pkg.badgeVariant === "hot" 
+            ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white" 
+            : pkg.badgeVariant === "best"
+              ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950"
+              : "bg-slate-500 text-white"
+        }`}>
           {pkg.badge || badgeLabel}
         </div>
       )}
