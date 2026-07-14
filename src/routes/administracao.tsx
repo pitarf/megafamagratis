@@ -1045,7 +1045,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                           <span className="capitalize font-black text-slate-800 text-[13.5px]">{p.networkId}</span>
                           <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[9.5px] font-bold text-primary border border-blue-100 uppercase">{p.benefitId === "followers" ? "Seguidores" : p.benefitId === "likes" ? "Curtidas" : "Views"}</span>
                           {p.badge && (
-                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[9.5px] font-bold text-amber-600 border border-amber-100 uppercase">{p.badge}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase border ${
+                              p.badgeVariant === "hot"
+                                ? "bg-orange-50 text-orange-600 border-orange-100"
+                                : p.badgeVariant === "best"
+                                  ? "bg-amber-50 text-amber-600 border-amber-100"
+                                  : "bg-slate-100 text-slate-500 border-slate-200"
+                            }`}>{p.badge}</span>
                           )}
                         </div>
                         <h3 className="font-extrabold text-[14.5px] text-slate-700 mt-1">{p.title} ({p.quantity} itens)</h3>
