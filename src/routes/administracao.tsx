@@ -304,7 +304,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
 
     // Processa os bullets separados por linha
-    const bulletsArr = (pkgForm.bullets || "")
+    const bulletsStr = typeof pkgForm.bullets === "string" ? pkgForm.bullets : "";
+    const bulletsArr = bulletsStr
       .split("\n")
       .map((b) => b.trim())
       .filter(Boolean);
@@ -1068,10 +1069,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                             onClick={() => {
                               let bulletsRaw = "";
                               if (p.bullets) {
-                                try {
-                                  bulletsRaw = JSON.parse(p.bullets).join("\n");
-                                } catch {
-                                  bulletsRaw = p.bullets;
+                                if (Array.isArray(p.bullets)) {
+                                  bulletsRaw = p.bullets.join("\n");
+                                } else if (typeof p.bullets === "string") {
+                                  try {
+                                    bulletsRaw = JSON.parse(p.bullets).join("\n");
+                                  } catch {
+                                    bulletsRaw = p.bullets;
+                                  }
                                 }
                               }
                               setPkgForm({

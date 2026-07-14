@@ -854,11 +854,15 @@ function OfferCard({
 
   // Parse dos bullets em JSON
   const bullets: string[] = useMemo(() => {
-    try {
-      return JSON.parse(pkg.bullets);
-    } catch {
-      return [];
+    if (Array.isArray(pkg.bullets)) return pkg.bullets;
+    if (typeof pkg.bullets === "string") {
+      try {
+        return JSON.parse(pkg.bullets);
+      } catch {
+        return pkg.bullets ? [pkg.bullets] : [];
+      }
     }
+    return [];
   }, [pkg.bullets]);
 
   async function handleCtaClick() {
